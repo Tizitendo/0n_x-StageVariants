@@ -33,10 +33,12 @@ StageVariants.create = function(namespace, identifier, stage, name, subname, wei
     if params.stageWeights[stageName][namespace .. "-" .. identifier] == nil then
         params.stageWeights[stageName][namespace .. "-" .. identifier] = weight or 50
     end
-    -- variants[stageName][variant][{namespace, identifier, name, subname, {tileset}, {recolor}, {resprite}, hidden}]
-    -- {tileset} = {original_tileset, replacement_tileset}
-    table.insert(variants[stageName], {namespace, identifier, name, subname, {}, {}, {}, false})
-    return variants[stageName][#variants[stageName]]
+    if not StageVariants.find(namespace, identifier) then
+        -- variants[stageName][variant][{namespace, identifier, name, subname, {tileset}, {recolor}, {resprite}, hidden}]
+        -- {tileset} = {original_tileset, replacement_tileset}
+        table.insert(variants[stageName], {namespace, identifier, name, subname, {}, {}, {}, false})
+    end
+    return StageVariants.find(namespace, identifier)
 end
 
 StageVariants.find = function(namespace, identifier)
@@ -50,11 +52,11 @@ StageVariants.find = function(namespace, identifier)
     return nil
 end
 
-StageVariants.find_all = function(namespace, identifier)
+StageVariants.find_all = function(namespace)
     local variantList = {}
     for _, stage in pairs(variants) do
         for _, variant in ipairs(stage) do
-            if variant[1] == namespace then
+            if namespace == nil or variant[1] == namespace then
                 table.insert(variantList, variant)
             end
         end
@@ -75,6 +77,10 @@ StageVariants.delete = function(variant)
 end
 
 StageVariants.clear = function(variant)
+    if variant == nil then
+        log.warning("StageVariants.clear: variant is nil")
+        return
+    end
     variant[5] = {}
     variant[6] = {}
     variant[7] = {}
@@ -93,7 +99,7 @@ StageVariants.set_hidden = function(variant, hidden)
 end
 
 StageVariants.set_weight = function(variant, weight)
-    params.stageWeights[variant[1].."-"..variant[2]] = weight
+    params.stageWeights[variant[1] .. "-" .. variant[2]] = weight
 end
 
 StageVariants.swap_tileset = function(stage_variant, original_tileset, replacement_tileset)
@@ -120,7 +126,8 @@ local lastTextures = {}
 local lastResprites = {}
 local lastRecolor = {}
 local lastVariant = nil
-gm.post_script_hook(gm.constants.stage_goto, function(self, other, result, args)
+
+Callback.add(Callback.TYPE.onStageStart, NAMESPACE .. "onStageStart", function()
     -- unload the tileset override when entering a new stage
     for _, texture in ipairs(lastTextures) do
         for _, tileset in ipairs(variants[currentStage][currentVariant][5]) do
@@ -139,7 +146,7 @@ gm.post_script_hook(gm.constants.stage_goto, function(self, other, result, args)
     lastResprites = {}
     lastRecolor = {}
 
-    currentStage = Stage.wrap(args[1].value).namespace .. "-" .. Stage.wrap(args[1].value).identifier
+    currentStage = Stage.wrap(gm._mod_game_getCurrentStage()).namespace .. "-" .. Stage.wrap(gm._mod_game_getCurrentStage()).identifier
     local weightedStages = {}
     if variants[currentStage] ~= nil then
         for index, variant in ipairs(variants[currentStage]) do
@@ -163,19 +170,18 @@ gm.post_script_hook(gm.constants.stage_goto, function(self, other, result, args)
     if #weightedStages > 0 then
         currentVariant = weightedStages[math.random(1, #weightedStages)]
     else
-        currentVariant = 0
+        currentVariant = nil
     end
-    if variants[currentStage] and variants[currentStage][currentVariant][4] and
+    if currentVariant and variants[currentStage] and variants[currentStage][currentVariant][4] and
         variants[currentStage][currentVariant][4] ~= "" then
         Global.level_subname = variants[currentStage][currentVariant][4]
         lastVariant = variants[currentStage][currentVariant]
     else
         lastVariant = nil
     end
-end)
 
-Callback.add(Callback.TYPE.onStageStart, NAMESPACE .. "onStageStart", function()
-    if variants[currentStage] == nil then
+
+    if currentVariant == nil or variants[currentStage] == nil then
         return
     end
     for _, recolor in ipairs(variants[currentStage][currentVariant][6]) do
@@ -199,7 +205,7 @@ end)
 gm.pre_script_hook(gm.constants
                        .anon_tile_render_setup_draw_func_gml_GlobalScript_scr_tilemap_rendering_33181338_tile_render_setup_draw_func_gml_GlobalScript_scr_tilemap_rendering,
     function(self, other, result, args)
-        if self and currentVariant ~= 0 then
+        if self and currentVariant ~= nil then
             for _, tileset in ipairs(variants[currentStage][currentVariant][5]) do
                 if gm.struct_get(self, "tiles_tex") == tileset[1] then
                     table.insert(lastTextures, self)
@@ -241,19 +247,20 @@ gui.add_imgui(function()
         end
 
         local spaces = ""
-        for i = 0, #Global.class_stage -1 do
+        for i = 0, #Global.class_stage - 1 do
             local stage = Stage.wrap(i)
-            local stageName = stage.namespace.."-"..stage.identifier
+            local stageName = stage.namespace .. "-" .. stage.identifier
             if variants[stageName] then
-                spaces = spaces.." "
+                spaces = spaces .. " "
                 local collapse = ImGui.CollapsingHeader(Language.translate_token(stage.token_name))
                 -- local collapse = ImGui.CollapsingHeader(stage.token_name)
                 -- ImGui.Text(Language.translate_token(stage.token_name))
                 if collapse then
                     for _, variant in ipairs(variants[stageName]) do
                         if not variant[8] then
-                            params.stageWeights[stageName][variant[1] .. "-" .. variant[2]] = ImGui.SliderInt(variant[3]..spaces,
-                            params.stageWeights[stageName][variant[1] .. "-" .. variant[2]] / 10, 0, 10) * 10
+                            params.stageWeights[stageName][variant[1] .. "-" .. variant[2]] = ImGui.SliderInt(
+                                variant[3] .. spaces,
+                                params.stageWeights[stageName][variant[1] .. "-" .. variant[2]] / 10, 0, 10) * 10
                             -- params.stageWeights[stageName][variant[1] .. "-" .. variant[2]] = ImGui.InputFloat(variant[3],
                             -- params.stageWeights[stageName][variant[1] .. "-" .. variant[2]] / 10, 1, 10, "%.1f") * 10
                         end
@@ -270,7 +277,7 @@ gui.add_always_draw_imgui(function()
     switched = ImGui.IsKeyDown(params.textureKey)
 end)
 
-Callback.add(Callback.TYPE.onStep, NAMESPACE.."onStep", function()
+Callback.add(Callback.TYPE.onStep, NAMESPACE .. "onStep", function()
     if lastSwitch ~= switched then
         if switched then
             if lastVariant then

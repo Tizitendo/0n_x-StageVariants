@@ -1,7 +1,7 @@
 # Onyx-StageVariants
 - Adds tileset swaps as stage variants (weights can be adjusted in the imgui window)
 - Adds Helper to create stage variants
-
+- look at variants.lua for example usages
 
 Import line:  
 ```lua
@@ -159,7 +159,32 @@ Sets the weight for the given Stage, ranging from 0 to 100 (the imgui window onl
 StageVariants.force_next(stage_variant) -> nil
 ```
 
-Forces the given variant to appear next stage, if the next stage has this variant. Only for the next stage. If you want it for every stage, you need to call this after entering for every stage. If multiple variants are forced for next stage, one will be decided randomly, based on the weights
+Forces the given variant to appear next stage, if the next stage has this variant. Only for the next stage. If you want it for every stage, you need to call this after entering for every stage. If multiple variants are forced for next stage, one will be chosen randomly
+
+---
+
+### Hotloading
+
+```lua
+if hotload then
+        GM.run_destroy()
+        GM.game_lobby_start()
+        GM.room_goto(gm.constants.rSelect)
+        gm.sprite_replace(desolateForest_retro, path.combine(PATH .. "<path to tileset>", "<tileset>.png"), 1, false, false, 0, 0)
+    end
+    hotload = true
+```
+
+To hotload changes made to a tileset make sure to add this piece of code in your initialize before the swap tileset calls and after the resource load calls. Additionally, the following should be added after the initialize
+
+```lua
+if hotload then
+    StageVariants.clear(StageVariants.find(NAMESPACE, identifier))
+	init()
+end
+```
+
+Reference variants.lua for an example of hotloading
 
 **Parameters:**  
 | **Parameter** | **Type** | **Description** |
