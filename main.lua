@@ -3,7 +3,7 @@ mods["RoRRModdingToolkit-RoRR_Modding_Toolkit"].auto(true)
 local envy = mods["MGReturns-ENVY"]
 envy.auto()
 PATH = _ENV["!plugins_mod_folder_path"]
-NAMESPACE = "OnyxStageVariants"
+NAMESPACE = "OnyxStageVariantsHelper"
 require("./StageVariants")
 
 function public.setup(env)

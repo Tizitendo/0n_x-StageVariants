@@ -1,5 +1,5 @@
 # Onyx-StageVariants
-- Helper to create stage variants
+- Helper to create visual stage variants
 - Allows you to replace spritesheets, recolor layers and more
 
 Import line:  
@@ -23,7 +23,7 @@ Creates a stage variant. It won't change anything for now, but it will be added 
 | `stage`       | Stage object  | The stage you want to add your variant to |
 | `name`        | string  | the name of your variant (will show up in imgui) |
 | `subname`     | string  | the subname of your variant (will replace the subname when entering the stage) |
-| `weight`      | string  | the default weight of your stage x10 (50 by default) |
+| `weight`      | string  | the default weight of your stage (5 by default) |
 
 <br>
 
@@ -184,7 +184,7 @@ if hotload then
 end
 ```
 
-Reference variants.lua for an example of hotloading
+Reference CoolStages for an example of hotloading
 
 **Parameters:**  
 | **Parameter** | **Type** | **Description** |

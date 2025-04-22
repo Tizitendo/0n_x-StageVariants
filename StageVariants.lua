@@ -31,7 +31,7 @@ StageVariants.create = function(namespace, identifier, stage, name, subname, wei
         params.stageWeights[stageName] = {}
     end
     if params.stageWeights[stageName][namespace .. "-" .. identifier] == nil then
-        params.stageWeights[stageName][namespace .. "-" .. identifier] = weight or 50
+        params.stageWeights[stageName][namespace .. "-" .. identifier] = weight or 5
     end
     if not StageVariants.find(namespace, identifier) then
         -- variants[stageName][variant][{namespace, identifier, name, subname, {tileset}, {recolor}, {resprite}, hidden}]
@@ -128,6 +128,7 @@ local lastRecolor = {}
 local lastVariant = nil
 
 StageVariants.unload_stage = function()
+    if not variants[currentStage] then return end
     -- unload the tileset override when entering a new stage
     for _, texture in ipairs(lastTextures) do
         for _, tileset in ipairs(variants[currentStage][currentVariant][5]) do
@@ -137,21 +138,11 @@ StageVariants.unload_stage = function()
         end
     end
     lastTextures = {}
-    -- unload the sprite override when entering a new stage
-    if lastVariant then
-        for i, sprite in ipairs(lastVariant[7]) do
-            gm.sprite_assign(sprite[1], lastResprites[i])
-        end
-    end
-    lastResprites = {}
-    lastRecolor = {}
 end
 
 gm.pre_script_hook(gm.constants.room_goto, function(self, other, result, args)
+    if not gm._mod_game_ingame() then return true end
     StageVariants.unload_stage()
-end)
-
-Callback.add(Callback.TYPE.onStageStart, NAMESPACE .. "onStageStart", function()
     currentStage = Stage.wrap(gm._mod_game_getCurrentStage()).namespace .. "-" ..
                        Stage.wrap(gm._mod_game_getCurrentStage()).identifier
     local weightedStages = {}
@@ -186,7 +177,9 @@ Callback.add(Callback.TYPE.onStageStart, NAMESPACE .. "onStageStart", function()
     else
         lastVariant = nil
     end
+end)
 
+Callback.add(Callback.TYPE.onStageStart, NAMESPACE .. "onStageStart", function()
     if currentVariant == nil or variants[currentStage] == nil then
         return
     end
@@ -266,9 +259,7 @@ gui.add_imgui(function()
                         if not variant[8] then
                             params.stageWeights[stageName][variant[1] .. "-" .. variant[2]] = ImGui.SliderInt(
                                 variant[3] .. spaces,
-                                params.stageWeights[stageName][variant[1] .. "-" .. variant[2]] / 10, 0, 10) * 10
-                            -- params.stageWeights[stageName][variant[1] .. "-" .. variant[2]] = ImGui.InputFloat(variant[3],
-                            -- params.stageWeights[stageName][variant[1] .. "-" .. variant[2]] / 10, 1, 10, "%.1f") * 10
+                                params.stageWeights[stageName][variant[1] .. "-" .. variant[2]], 0, 10)
                         end
                     end
                 end
